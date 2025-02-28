@@ -18,6 +18,7 @@ object Config {
     // ADB paths
     val adbPath: String = dotenv["ADB_PATH"] ?: "${basePath}/Library/Android/sdk/platform-tools/adb"
 
+
     // Function to build ADB command
     fun buildAdbCommand(baseCommand: String): String {
         return if (deviceId.isNullOrEmpty()) {
