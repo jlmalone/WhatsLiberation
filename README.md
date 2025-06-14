@@ -22,10 +22,19 @@ People deserve **data sovereignty**—the right to control, access, and preserve
    `git clone https://github.com/yourusername/WhatsLiberation`
 2. Install prerequisites: Kotlin, JDK, Android SDK.
 3. Connect an Android device via USB with USB debugging enabled.
-4. Build the project:  
-   `./gradlew build`
-5. Run with options:  
-   `./gradlew run --args="--help"`
+4. Copy `src/main/resources/.env.example` to `.env` and update paths (ADB, snapshot directories).
+5. Build the project:
+   `gradle build`
+6. Run with options:
+   `gradle run --args="--help"`
+   - To specify a device ID: `gradle run --args="--device-id <DEVICE_ID>"`
+
+### Exporting a Single Chat
+Running the program opens WhatsApp and walks through the UI to trigger the "Export chat" flow for the first conversation in your list. When the Android share sheet appears, choose a destination such as "Save to device" or "Save to Drive". If you save to local storage (e.g., `/sdcard/Download/`), you can retrieve the file on your computer via:
+
+```bash
+adb pull /sdcard/Download/<exported-file>.zip ./
+```
 
 ## Prerequisites
 - Kotlin 1.6+

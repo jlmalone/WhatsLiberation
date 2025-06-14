@@ -16,6 +16,26 @@ object HelloWorld {
     fun main(args: Array<String>) {
         println("Starting WhatsLiberation...")
 
+        // Simple argument parsing for --device-id <id>
+        var cliDeviceId: String? = null
+        var i = 0
+        while (i < args.size) {
+            when (args[i]) {
+                "--device-id" -> {
+                    if (i + 1 < args.size) {
+                        cliDeviceId = args[i + 1]
+                        i += 2
+                    } else {
+                        i++
+                    }
+                }
+                else -> i++
+            }
+        }
+        Config.overrideDeviceId(cliDeviceId)
+
+        println("Using device ID: ${Config.deviceId ?: "(default)"}")
+
         if (!isDeviceConnected()) {
             println("No device connected. Please connect an Android device with USB debugging enabled.")
             return
@@ -95,6 +115,8 @@ object HelloWorld {
             tapExportChat()
             Thread.sleep(3000)
             AdbAutomation.capturePageSnapshot("opened_export")
+            Thread.sleep(3000)
+            tapWithoutMediaOption()
 
             //todo
 //            tapMore("navigation_opened_three_dot")
@@ -306,6 +328,25 @@ object HelloWorld {
         } else {
             println("Tapping 'More' menu at x=${moreCenter.first}, y=${moreCenter.second}")
             val tapCommand = Config.buildAdbCommand("shell input tap ${moreCenter.first} ${moreCenter.second}")
+            runCommand(tapCommand)
+        }
+    }
+
+    private fun tapWithoutMediaOption() {
+        val localDir = Config.localSnapshotDir.replace("~", System.getProperty("user.home"))
+        val uiDumpFile = findMostRecentXml(localDir, prefix = "navigation_opened_export")
+            ?: run {
+                println("No UI dump found for export options in $localDir!")
+                return
+            }
+        println("Found export options dump: $uiDumpFile")
+        val xmlContent = File(uiDumpFile).readText()
+        val center = WhatsAppXmlParser.findNodeCenterWithText(xmlContent, "com.whatsapp:id/title", "Without media")
+        if (center == null) {
+            println("Could not locate the 'Without media' option in the UI dump.")
+        } else {
+            println("Tapping 'Without media' at x=${center.first}, y=${center.second}")
+            val tapCommand = Config.buildAdbCommand("shell input tap ${center.first} ${center.second}")
             runCommand(tapCommand)
         }
     }
