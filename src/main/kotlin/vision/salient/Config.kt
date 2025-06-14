@@ -6,7 +6,7 @@ object Config {
 
     // Load environment variables
     private val dotenv = Dotenv.load()
-    val deviceId = dotenv["DEVICE_ID"]
+    var deviceId: String? = dotenv["DEVICE_ID"]
     val username: String? = dotenv["USERNAME"]
 
     // Paths
@@ -18,6 +18,11 @@ object Config {
     // ADB paths
     val adbPath: String = dotenv["ADB_PATH"] ?: "${basePath}/Library/Android/sdk/platform-tools/adb"
 
+
+    // Allow overriding the device ID from the command line
+    fun overrideDeviceId(newId: String?) {
+        if (!newId.isNullOrBlank()) deviceId = newId
+    }
 
     // Function to build ADB command
     fun buildAdbCommand(baseCommand: String): String {
