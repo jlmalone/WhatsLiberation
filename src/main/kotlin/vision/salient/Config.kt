@@ -4,13 +4,16 @@ import io.github.cdimascio.dotenv.Dotenv
 
 object Config {
 
-    // Load environment variables
-    private val dotenv = Dotenv.load()
+    // Load environment variables. Ignore missing or malformed .env files
+    private val dotenv = Dotenv.configure()
+        .ignoreIfMalformed()
+        .ignoreIfMissing()
+        .load()
     val deviceId = dotenv["DEVICE_ID"]
     val username: String? = dotenv["USERNAME"]
 
     // Paths
-    val basePath: String = dotenv["BASE_PATH"] ?: "/Users/${username}"
+    val basePath: String = dotenv["BASE_PATH"] ?: System.getProperty("user.home")
 
     // Snapshot paths
     val deviceSnapshotDir: String = dotenv["DEVICE_SNAPSHOT_DIR"] ?: "/sdcard/whats"
