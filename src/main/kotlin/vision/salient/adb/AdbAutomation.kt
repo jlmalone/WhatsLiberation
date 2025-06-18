@@ -12,7 +12,7 @@ import java.util.*
 object AdbAutomation {
 
     fun pullFilesFromDevice(fileName: String, localPath: String) {
-        val adbCommand = buildAdbCommand("pull /sdcard/hge/$fileName $localPath")
+        val adbCommand = buildAdbCommand("pull ${Config.deviceSnapshotDir}/$fileName $localPath")
         runCommand(adbCommand)
     }
 
