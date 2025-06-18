@@ -96,7 +96,7 @@ object HelloWorld {
             Thread.sleep(3000)
             AdbAutomation.capturePageSnapshot("opened_export")
 
-            //todo
+            // TODO
 //            tapMore("navigation_opened_three_dot")
 
         }
@@ -272,7 +272,7 @@ object HelloWorld {
         println("Found overflow UI dump: $uiDumpFile")
         val xmlContent = File(uiDumpFile).readText()
 
-        // Look for the node with resource-id "com.whatsapp:id/title" and text "More"
+        // Look for the node with resource-id "com.whatsapp:id/title" and text "Export chat"
         val targetResId = "com.whatsapp:id/title"
         val targetText = "Export chat"
         val exportChatCentre = WhatsAppXmlParser.findNodeCenterWithText(xmlContent, targetResId, targetText)
