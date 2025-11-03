@@ -13,33 +13,24 @@ object WhatsAppXmlParser {
      * Finds the first node in the XML with the specified [targetResId] and whose text equals [targetText].
      * Returns the center coordinates of its bounds as Pair(x, y), or null if not found.
      */
-    fun findNodeCenterWithText(xmlContent: String, targetResId: String, targetText: String): Pair<Int, Int>? {
-        val docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
-        val doc = docBuilder.parse(InputSource(StringReader(xmlContent)))
-        val root = doc.documentElement
-        var result: Pair<Int, Int>? = null
+    fun findNodeCenterWithText(
+        xmlContent: String,
+        targetResId: String,
+        targetText: String,
+        ignoreCase: Boolean = false
+    ): Pair<Int, Int>? = findNodeCenterMatching(xmlContent, targetResId) { candidate ->
+        if (ignoreCase) candidate.equals(targetText, ignoreCase = true)
+        else candidate == targetText
+    }
 
-        fun traverse(node: Node) {
-            if (result != null) return
-            if (node.nodeType == Node.ELEMENT_NODE) {
-                val element = node as Element
-                val resId = element.getAttribute("resource-id")
-                val text = element.getAttribute("text").trim()
-                // Debug print
-                // println("Checking node: resId='$resId', text='$text'")
-                if (resId == targetResId && text == targetText) {
-                    result = parseBoundsCenter(element.getAttribute("bounds"))
-                    return
-                }
-                val children = element.childNodes
-                for (i in 0 until children.length) {
-                    traverse(children.item(i))
-                    if (result != null) break
-                }
-            }
-        }
-        traverse(root)
-        return result
+    fun findNodeCenterContainingText(
+        xmlContent: String,
+        targetResId: String,
+        fragment: String,
+        ignoreCase: Boolean = true
+    ): Pair<Int, Int>? = findNodeCenterMatching(xmlContent, targetResId) { candidate ->
+        if (ignoreCase) candidate.contains(fragment, ignoreCase = true)
+        else candidate.contains(fragment)
     }
 
 //    /**
@@ -92,8 +83,6 @@ object WhatsAppXmlParser {
      */
     fun parseConversationList(xmlContent: String): List<WhatsAppChat> {
         val chats = mutableListOf<WhatsAppChat>()
-        println("DEBUG: Starting XML parsing...")
-
         val docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
         val doc = docBuilder.parse(InputSource(StringReader(xmlContent)))
         val root = doc.documentElement
@@ -101,26 +90,17 @@ object WhatsAppXmlParser {
         fun traverse(node: Node, depth: Int = 0) {
             if (node.nodeType == Node.ELEMENT_NODE) {
                 val element = node as Element
-                val indent = "  ".repeat(depth)
                 val resId = element.getAttribute("resource-id")
-                val text = element.getAttribute("text")
-                println("DEBUG: $indent Node: class=${element.tagName}, resource-id='$resId', text='$text'")
 
                 // Check if this element is the conversation container.
                 // You might need to adjust this if the resource-id has changed.
                 if (resId == "com.whatsapp:id/contact_row_container") {
                     val bounds = element.getAttribute("bounds")
                     val chatName = findContactName(element)
-                        ?: run {
-                            println("DEBUG: $indent No contact name found in container; defaulting to 'Unknown Chat'")
-                            "Unknown Chat"
-                        }
+                        ?: "Unknown Chat"
                     val center = parseBoundsCenter(bounds)
                     if (center != null) {
-                        println("DEBUG: $indent Found conversation: '$chatName' with bounds $bounds -> center=(${center.first}, ${center.second})")
                         chats.add(WhatsAppChat(chatName, bounds, center.first, center.second))
-                    } else {
-                        println("DEBUG: $indent Could not parse bounds: $bounds")
                     }
                 }
 
@@ -133,7 +113,6 @@ object WhatsAppXmlParser {
         }
 
         traverse(root)
-        println("DEBUG: Finished parsing XML. Total conversations found: ${chats.size}")
         return chats
     }
 
@@ -147,9 +126,7 @@ object WhatsAppXmlParser {
             val child = nodes.item(i) as? Element ?: continue
             val childResId = child.getAttribute("resource-id")
             val childText = child.getAttribute("text")
-            println("DEBUG:    Checking child node: resource-id='$childResId', text='$childText'")
             if (childResId == "com.whatsapp:id/conversations_row_contact_name" && childText.isNotBlank()) {
-                println("DEBUG:    Found contact name: '$childText'")
                 return childText
             }
         }
@@ -166,5 +143,39 @@ object WhatsAppXmlParser {
         val centerX = (x1.toInt() + x2.toInt()) / 2
         val centerY = (y1.toInt() + y2.toInt()) / 2
         return centerX to centerY
+    }
+
+    private fun findNodeCenterMatching(
+        xmlContent: String,
+        targetResId: String,
+        predicate: (String) -> Boolean
+    ): Pair<Int, Int>? {
+        val docBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder()
+        val doc = docBuilder.parse(InputSource(StringReader(xmlContent)))
+        val root = doc.documentElement
+        var result: Pair<Int, Int>? = null
+
+        fun traverse(node: Node) {
+            if (result != null) return
+            if (node.nodeType == Node.ELEMENT_NODE) {
+                val element = node as Element
+                val resId = element.getAttribute("resource-id")
+                if (resId == targetResId) {
+                    val text = element.getAttribute("text").trim()
+                    if (predicate(text)) {
+                        result = parseBoundsCenter(element.getAttribute("bounds"))
+                        return
+                    }
+                }
+                val children = element.childNodes
+                for (i in 0 until children.length) {
+                    traverse(children.item(i))
+                    if (result != null) break
+                }
+            }
+        }
+
+        traverse(root)
+        return result
     }
 }

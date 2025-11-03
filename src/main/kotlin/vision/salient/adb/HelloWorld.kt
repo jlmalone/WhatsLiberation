@@ -3,7 +3,7 @@ package vision.salient.adb
 import org.w3c.dom.Element
 import org.w3c.dom.Node
 import org.xml.sax.InputSource
-import vision.salient.Config
+import vision.salient.config.Config
 import vision.salient.WhatsAppXmlParser
 import vision.salient.model.WhatsAppChat
 import java.io.File
@@ -33,16 +33,16 @@ object HelloWorld {
 //        // Use the AdbAutomation object to capture the page snapshot
 //        AdbAutomation.capturePageSnapshot("initial_screen")
 //
-//        println("Initial snapshot captured. Check ${Config.localSnapshotDir} for output.")
+//        println("Initial snapshot captured. Check ${Config.localSnapshotDir.toAbsolutePath()} for output.")
 //
 
 
         // Capture the conversation list snapshot.
         AdbAutomation.capturePageSnapshot("initial_screen")
-        println("Initial snapshot captured. Check ${Config.localSnapshotDir} for output.")
+        println("Initial snapshot captured. Check ${Config.localSnapshotDir.toAbsolutePath()} for output.")
 
         // Locate the most recent XML dump for "initial_screen".
-        val localDir = Config.localSnapshotDir.replace("~", System.getProperty("user.home"))
+        val localDir = Config.localSnapshotDir.toAbsolutePath().toString()
 
         val snapshotXmlFile = findMostRecentXml(localDir, prefix = "navigation_initial_screen_")
 
@@ -69,7 +69,7 @@ object HelloWorld {
 
             // Capture a snapshot of the opened chat.
             AdbAutomation.capturePageSnapshot("first_chat_opened")
-            println("Captured snapshot of first chat. Check ${Config.localSnapshotDir} for output.")
+            println("Captured snapshot of first chat. Check ${Config.localSnapshotDir.toAbsolutePath()} for output.")
 
 //
 //            // Now, locate and tap the overflow (three dots) button.
@@ -81,7 +81,7 @@ object HelloWorld {
 //
 //            // Capture a snapshot of the opened chat.
 //            AdbAutomation.capturePageSnapshot("first_chat_opened")
-//            println("Captured snapshot of first chat. Check ${Config.localSnapshotDir} for output.")
+//            println("Captured snapshot of first chat. Check ${Config.localSnapshotDir.toAbsolutePath()} for output.")
 
             // Now, locate and tap the overflow (three dots) button.
             tapOverflowMenu("navigation_first_chat_opened")
@@ -121,7 +121,7 @@ object HelloWorld {
     // ----------------------------
     private fun tapOverflowMenu(prefix: String) {
         // Find the most recent UI dump for the opened chat.
-        val localDir = Config.localSnapshotDir.replace("~", System.getProperty("user.home"))
+        val localDir = Config.localSnapshotDir.toAbsolutePath().toString()
         val uiDumpFile = findMostRecentXml(localDir, prefix = prefix)
             ?: run {
                 println("No UI dump found with prefix $prefix in $localDir!")
@@ -199,7 +199,7 @@ object HelloWorld {
 
     // Set up the local directory for storing exports
     private fun setupLocalDirectory() {
-        val dir = File(Config.localSnapshotDir.replace("~", System.getProperty("user.home")))
+        val dir = File(Config.localSnapshotDir.toAbsolutePath().toString())
         if (!dir.exists()) {
             dir.mkdirs()
             println("Created local directory: ${dir.absolutePath}")
@@ -263,7 +263,7 @@ object HelloWorld {
     private fun tapExportChat() {
         // Assume that after tapping the overflow button, you capture a new UI dump.
         // Here we look for a dump with prefix "first_chat_opened" (or whatever you use for the overflow screen)
-        val localDir = Config.localSnapshotDir.replace("~", System.getProperty("user.home"))
+        val localDir = Config.localSnapshotDir.toAbsolutePath().toString()
         val uiDumpFile = findMostRecentXml(localDir, prefix = "navigation_opened_more")
             ?: run {
                 println("No UI dump found for overflow screen in $localDir!")
@@ -288,7 +288,7 @@ object HelloWorld {
     private fun tapMoreMenu() {
         // Assume that after tapping the overflow button, you capture a new UI dump.
         // Here we look for a dump with prefix "first_chat_opened" (or whatever you use for the overflow screen)
-        val localDir = Config.localSnapshotDir.replace("~", System.getProperty("user.home"))
+        val localDir = Config.localSnapshotDir.toAbsolutePath().toString()
         val uiDumpFile = findMostRecentXml(localDir, prefix = "navigation_first_chat_opened")
             ?: run {
                 println("No UI dump found for overflow screen in $localDir!")

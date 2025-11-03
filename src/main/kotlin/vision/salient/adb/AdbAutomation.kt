@@ -2,8 +2,8 @@
 
 package vision.salient.adb
 
-import vision.salient.Config
-import vision.salient.Config.buildAdbCommand
+import vision.salient.config.Config
+import vision.salient.config.Config.buildAdbCommand
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.text.SimpleDateFormat
@@ -44,7 +44,7 @@ object AdbAutomation {
     }
 
     fun pullFilesFromDevice(fileName: String) {
-        val adbCommand = buildAdbCommand("pull ${Config.deviceSnapshotDir}/$fileName ${Config.localSnapshotDir}/$fileName")
+        val adbCommand = buildAdbCommand("pull ${Config.deviceSnapshotDir}/$fileName ${Config.localSnapshotDir.toAbsolutePath()}/$fileName")
         runCommand(adbCommand)
     }
 
