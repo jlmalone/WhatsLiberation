@@ -230,19 +230,219 @@ class SingleChatExportRunner(
             }
 
             val matchIndex = (request.matchIndex ?: 1).coerceAtLeast(1)
+
+            // Try flexible discovery with search and scrolling
+            val discovered = findChatFlexibly(target, matchIndex)
+            if (discovered != null) {
+                logger.info("Found chat '{}' via flexible search (Levenshtein match)", discovered.name)
+                return discovered
+            }
+
+            // Fallback: try in current viewport with fuzzy matching
+            val fuzzyMatches = findFuzzyMatches(chats, target, maxDistance = 5)
+            if (fuzzyMatches.size >= matchIndex) {
+                val match = fuzzyMatches[matchIndex - 1]
+                logger.info("Found chat '{}' via fuzzy match (distance={})", match.first.name, match.second)
+                return match.first
+            }
+
+            throw ExportException("Chat '$target' not found after flexible search and scrolling")
+        }
+
+        /**
+         * Flexibly find a chat using human-like search strategies:
+         * 1. Use WhatsApp search to narrow results
+         * 2. Scroll through search results (up to 5 pages)
+         * 3. Use fuzzy matching (Levenshtein distance)
+         * 4. Handle duplicates via occurrence index
+         */
+        private fun findChatFlexibly(targetName: String, occurrence: Int): WhatsAppChat? {
+            logger.info("Searching for chat '{}' (occurrence {}) using flexible discovery", targetName, occurrence)
+
+            // Step 1: Try search if target is reasonably specific (3+ chars)
+            if (targetName.length >= 3) {
+                val searchResults = searchChats(targetName)
+                if (searchResults.isNotEmpty()) {
+                    val fuzzyMatches = findFuzzyMatches(searchResults, targetName, maxDistance = 5)
+                    if (fuzzyMatches.size >= occurrence) {
+                        logger.debug("Found {} fuzzy matches in search results", fuzzyMatches.size)
+                        exitSearch()
+                        return fuzzyMatches[occurrence - 1].first
+                    }
+                }
+                exitSearch()
+            }
+
+            // Step 2: Scroll through main list and collect candidates
+            logger.debug("Search didn't find enough matches, trying main list with scrolling")
+            val candidates = scrollAndCollectCandidates(targetName, maxPages = 5)
+
+            if (candidates.isEmpty()) {
+                logger.warn("No candidates found after scrolling {} pages", 5)
+                return null
+            }
+
+            val fuzzyMatches = findFuzzyMatches(candidates, targetName, maxDistance = 5)
+            if (fuzzyMatches.size >= occurrence) {
+                logger.debug("Found {} fuzzy matches after scrolling", fuzzyMatches.size)
+                return fuzzyMatches[occurrence - 1].first
+            }
+
+            logger.warn("Only found {} matches, requested occurrence {}", fuzzyMatches.size, occurrence)
+            return null
+        }
+
+        /**
+         * Search for chats using WhatsApp's search feature
+         */
+        private fun searchChats(query: String): List<WhatsAppChat> {
+            logger.debug("Initiating WhatsApp search for '{}'", query)
+
+            // Tap search icon (common IDs: menuitem_search, action_search, search)
+            val searchIconCenter = WhatsAppXmlParser.findNodeCenter(
+                dumpUi("pre_search.xml"),
+                "com.whatsapp:id/menuitem_search"
+            ) ?: WhatsAppXmlParser.findNodeCenter(
+                dumpUi("pre_search.xml"),
+                "com.whatsapp:id/search"
+            )
+
+            if (searchIconCenter == null) {
+                logger.warn("Could not locate search icon, skipping search")
+                return emptyList()
+            }
+
+            tap(searchIconCenter.first, searchIconCenter.second, "open search")
+            sleeper.sleep(400)
+
+            // Type search query
+            adbClient.shell("input", "text", query.replace(" ", "%s"))
+                .ensureSuccess("type search query")
+            sleeper.sleep(800)
+
+            // Collect search results with scrolling
+            val results = mutableListOf<WhatsAppChat>()
+            var scrollAttempts = 0
+            val maxScrolls = 5
+
+            while (scrollAttempts < maxScrolls) {
+                val xml = dumpUi("search_results_page$scrollAttempts.xml")
+                writeSnapshot("search_results_page$scrollAttempts.xml", xml)
+                val chats = WhatsAppXmlParser.parseConversationList(xml)
+
+                val newChats = chats.filter { candidate ->
+                    results.none { it.name == candidate.name && it.centerX == candidate.centerX }
+                }
+
+                if (newChats.isEmpty()) break
+                results.addAll(newChats)
+
+                scrollAttempts++
+                if (scrollAttempts < maxScrolls) {
+                    adbClient.shell("input", "swipe", "540", "1500", "540", "800", "300")
+                    sleeper.sleep(400)
+                }
+            }
+
+            logger.debug("Search collected {} chat(s) across {} page(s)", results.size, scrollAttempts + 1)
+            return results
+        }
+
+        /**
+         * Exit search mode and return to main chat list
+         */
+        private fun exitSearch() {
+            logger.debug("Exiting search mode")
+            // Press back button
+            adbClient.shell("input", "keyevent", "KEYCODE_BACK")
+            sleeper.sleep(400)
+        }
+
+        /**
+         * Scroll through main chat list and collect candidates that might match
+         */
+        private fun scrollAndCollectCandidates(targetName: String, maxPages: Int): List<WhatsAppChat> {
+            val candidates = mutableSetOf<WhatsAppChat>()
+            val normalizedTarget = normalizeName(targetName)
+            var stagnantScrolls = 0
+            var scrollAttempts = 0
+
+            while (scrollAttempts < maxPages) {
+                val xml = dumpUi("scroll_page$scrollAttempts.xml")
+                writeSnapshot("scroll_page$scrollAttempts.xml", xml)
+                val chats = WhatsAppXmlParser.parseConversationList(xml)
+
+                val newCandidates = chats.filter { chat ->
+                    val normalized = normalizeName(chat.name)
+                    // Include if: exact match, contains, or low edit distance
+                    normalized.contains(normalizedTarget) ||
+                    normalizedTarget.contains(normalized) ||
+                    levenshteinDistance(normalized, normalizedTarget) <= 5
+                }
+
+                val sizeBefore = candidates.size
+                candidates.addAll(newCandidates)
+
+                if (candidates.size == sizeBefore) {
+                    stagnantScrolls++
+                    if (stagnantScrolls >= 2) break
+                } else {
+                    stagnantScrolls = 0
+                }
+
+                scrollAttempts++
+                if (scrollAttempts < maxPages) {
+                    adbClient.shell("input", "swipe", "540", "1500", "540", "800", "300")
+                    sleeper.sleep(400)
+                }
+            }
+
+            logger.debug("Collected {} candidate(s) after scrolling {} page(s)", candidates.size, scrollAttempts + 1)
+            return candidates.toList()
+        }
+
+        /**
+         * Find fuzzy matches using Levenshtein distance
+         * Returns pairs of (chat, distance) sorted by best match first
+         */
+        private fun findFuzzyMatches(
+            chats: List<WhatsAppChat>,
+            target: String,
+            maxDistance: Int
+        ): List<Pair<WhatsAppChat, Int>> {
             val normalizedTarget = normalizeName(target)
 
-            val directMatches = chats.filter { normalizeName(it.name) == normalizedTarget }
-            if (directMatches.size >= matchIndex) {
-                return directMatches[matchIndex - 1]
+            return chats
+                .map { chat -> chat to levenshteinDistance(normalizeName(chat.name), normalizedTarget) }
+                .filter { it.second <= maxDistance }
+                .sortedBy { it.second }
+        }
+
+        /**
+         * Calculate Levenshtein distance between two strings
+         * (minimum number of edits to transform one string into another)
+         */
+        private fun levenshteinDistance(s1: String, s2: String): Int {
+            val len1 = s1.length
+            val len2 = s2.length
+
+            val dp = Array(len1 + 1) { IntArray(len2 + 1) }
+
+            for (i in 0..len1) dp[i][0] = i
+            for (j in 0..len2) dp[0][j] = j
+
+            for (i in 1..len1) {
+                for (j in 1..len2) {
+                    val cost = if (s1[i - 1] == s2[j - 1]) 0 else 1
+                    dp[i][j] = minOf(
+                        dp[i - 1][j] + 1,      // deletion
+                        dp[i][j - 1] + 1,      // insertion
+                        dp[i - 1][j - 1] + cost // substitution
+                    )
+                }
             }
 
-            val containsMatches = chats.filter { normalizeName(it.name).contains(normalizedTarget) }
-            if (containsMatches.size >= matchIndex) {
-                return containsMatches[matchIndex - 1]
-            }
-
-            throw ExportException("Chat '$target' not found on the conversation list")
+            return dp[len1][len2]
         }
 
         private fun selectShareTarget() {
