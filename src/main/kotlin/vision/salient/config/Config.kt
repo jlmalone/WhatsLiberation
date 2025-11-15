@@ -19,6 +19,7 @@ data class AppConfig(
     val adbPath: Path,
     val drive: DriveConfig,
     val contacts: ContactsConfig,
+    val database: DatabaseConfig,
 )
 
 data class DriveConfig(
@@ -32,6 +33,12 @@ data class DriveConfig(
 data class ContactsConfig(
     val clientSecretPath: Path?,
     val tokenPath: Path?,
+)
+
+data class DatabaseConfig(
+    val enabled: Boolean,
+    val path: Path,
+    val vacuumOnStartup: Boolean = false,
 )
 
 /**
@@ -93,6 +100,16 @@ class ConfigLoader(private val env: EnvSource = DotenvEnvSource()) {
             tokenPath = resolvePath(envValue("GOOGLE_CONTACTS_TOKEN_PATH"), basePath)
         )
 
+        val databaseEnabled = envValue("DATABASE_ENABLED")?.toBoolean() ?: true
+        val databasePath = resolvePath(envValue("DATABASE_PATH"), basePath)
+            ?: basePath.resolve(".whatsliberation/registry.db").normalize()
+        val databaseVacuum = envValue("DATABASE_VACUUM_ON_STARTUP")?.toBoolean() ?: false
+        val databaseConfig = DatabaseConfig(
+            enabled = databaseEnabled,
+            path = databasePath,
+            vacuumOnStartup = databaseVacuum
+        )
+
         return AppConfig(
             deviceId = envValue("DEVICE_ID"),
             username = username,
@@ -102,6 +119,7 @@ class ConfigLoader(private val env: EnvSource = DotenvEnvSource()) {
             adbPath = adbPath,
             drive = driveConfig,
             contacts = contactsConfig,
+            database = databaseConfig,
         )
     }
 
@@ -205,6 +223,7 @@ object Config {
     val adbPath: Path get() = appConfig.adbPath
     val drive: DriveConfig get() = appConfig.drive
     val contacts: ContactsConfig get() = appConfig.contacts
+    val database: DatabaseConfig get() = appConfig.database
 
     fun validation(): ConfigValidationResult = loader.validate(appConfig)
 

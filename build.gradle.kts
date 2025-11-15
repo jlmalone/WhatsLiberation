@@ -2,7 +2,7 @@ import org.gradle.api.tasks.JavaExec
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 plugins {
-    kotlin("jvm") version "2.1.0"
+    kotlin("jvm") version "1.9.22"
     application
 }
 
@@ -29,6 +29,13 @@ dependencies {
     implementation("com.google.apis:google-api-services-drive:v3-rev20240914-2.0.0")
     implementation("com.google.auth:google-auth-library-oauth2-http:1.23.0")
     implementation("com.google.apis:google-api-services-people:v1-rev20250513-2.0.0")
+
+    // Database dependencies (Phase C - Persistent Registry)
+    implementation("org.jetbrains.exposed:exposed-core:0.55.0")
+    implementation("org.jetbrains.exposed:exposed-dao:0.55.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.55.0")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.55.0")
+    implementation("org.xerial:sqlite-jdbc:3.47.0.0")
 
     testImplementation(kotlin("test"))
 }
