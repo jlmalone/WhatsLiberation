@@ -14,8 +14,29 @@ import javax.xml.parsers.DocumentBuilderFactory
 object HelloWorld {
     @JvmStatic
     fun main(args: Array<String>) {
-        println("Starting WhatsLiberation...")
+        when {
+            args.isEmpty() || args.any { it == "--help" || it == "-h" } -> printUsage()
+            args.any { it == "--dry-run" } -> println("Dry run: no ADB commands, taps, or filesystem effects are performed.")
+            else -> System.err.println("No export operation is available yet. Pass --help for safe usage.")
+        }
+    }
 
+    private fun printUsage() {
+        println(
+            """
+            WhatsLiberation (experimental)
+            
+            Safe commands:
+              --help, -h    Show this message and exit without device effects
+              --dry-run     Validate invocation only; no ADB or filesystem effects
+            
+            Export workflows are disabled until an explicit operation and receipt path exist.
+            """.trimIndent()
+        )
+    }
+
+    @Suppress("unused")
+    private fun runDisabledExportSpike() {
         if (!isDeviceConnected()) {
             println("No device connected. Please connect an Android device with USB debugging enabled.")
             return
