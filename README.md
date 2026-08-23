@@ -4,47 +4,43 @@
 
 **Description:**
 
-`WhatsLiberation` is an ambitious open-source project designed to automate the bulk export of WhatsApp conversations—including text messages and media (photos, videos, audio, documents)—from an Android device to a local filesystem. Leveraging the Android Debug Bridge (ADB) for UI automation, this Kotlin-based tool interacts with WhatsApp’s native "Export chat" functionality to extract and organize chat data into a structured, user-friendly format. The project explores innovative solutions to a complex problem, balancing technical creativity with practical utility.
+`WhatsLiberation` is an experimental Kotlin/JVM project exploring WhatsApp conversation export via Android Debug Bridge (ADB) UI automation. **Export is currently disabled.** The CLI is inert: every `main` invocation prints usage or a disabled message and exits without loading configuration, invoking ADB, or touching the device.
 
 ## Highlights
-- Automates WhatsApp chat exports using ADB-driven UI interactions.
-- Supports both text-only and media-inclusive exports (in development).
-- Organizes data into a logical folder structure for easy access.
-- Built with Kotlin for robust scripting and extensibility.
-- Open-source, inviting collaboration and real-world testing.
+- Inert CLI: `--help`, no arguments, `--dry-run`, and unknown flags exit without device effects.
+- Export workflows are disabled until an explicit operation and artifact receipt path exist.
+- Prior spike code remains in the repository for future state-machine work.
+- Built with Kotlin for scripting and extensibility.
+- Open-source exploration; not a production backup tool.
 
 ## Motivation
 
-People deserve **data sovereignty**—the right to control, access, and preserve their own digital information. WhatsApp, while a powerful communication tool, locks user data within its ecosystem, offering limited native options for bulk export or long-term archival. `WhatsLiberation` empowers users to reclaim ownership of their conversations and media, providing a pathway to liberate personal data from proprietary constraints. This project is a step toward a future where individuals, not platforms, dictate the fate of their digital footprint.
+People deserve **data sovereignty**—the right to control, access, and preserve their own digital information. WhatsApp, while a powerful communication tool, locks user data within its ecosystem, offering limited native options for bulk export or long-term archival. `WhatsLiberation` explores a pathway to liberate personal data from proprietary constraints, but **no export is available in the current checkout**.
 
 ## Quick Start
 1. Clone the repository:  
    `git clone https://github.com/yourusername/WhatsLiberation`
-2. Install prerequisites: Kotlin, JDK, Android SDK.
-3. Connect an Android device via USB with USB debugging enabled.
-4. Build the project:  
-   `./gradlew build`
-5. Run with options:  
-   `./gradlew run --args="--help"`
+2. Install prerequisites: Kotlin, JDK.
+3. Build the project when your host toolchain supports it.
+4. Run safe commands only:  
+   `./gradlew run --args="--help"` or `--args="--dry-run"`
+
+**Do not expect export.** ADB is not invoked by the current entrypoint.
 
 ## Prerequisites
 - Kotlin 1.6+
 - JDK 11+
-- Android device (10.0+) with WhatsApp installed
-- ADB installed and configured
-- USB debugging enabled
-- WhatsApp chats targeted for export
+- For future export work only: Android device, ADB, USB debugging, WhatsApp
 
 ## Compatibility
-- Tested on Android 10.0+ (earlier versions untested).
-- WhatsApp v2.23.X.X (as of February 2025)—subject to change with updates.
-- Fragility expected due to reliance on WhatsApp’s UI.
+- Export automation is not active in this checkout.
+- Prior spike code targeted Android 10.0+ and WhatsApp UI structures that change frequently.
 
 ## Why This Matters
-No widely-adopted, actively-maintained open-source tools currently exist for bulk WhatsApp exports via ADB automation. `WhatsLiberation` aims to fill this gap, offering a proof-of-concept that could evolve into a reliable solution with community input. The project tackles significant technical challenges—UI automation fragility, media handling complexity, and cross-version compatibility—making it a compelling exploration for developers and innovators.
+No widely-adopted, actively-maintained open-source tools currently exist for bulk WhatsApp exports via ADB automation. `WhatsLiberation` may evolve into a reliable solution with community input, but **the current CLI performs no export**.
 
 **Disclaimer:**  
-This is an experimental tool. ADB-based automation is inherently fragile and may break with WhatsApp updates. Use it as a foundation for experimentation, not a production-ready backup solution, and test thoroughly before relying on it.
+This is an experimental repository. The entrypoint is inert and does not run ADB. When export is re-enabled, ADB-based automation will remain fragile and may break with WhatsApp updates. Do not use this checkout as a backup solution.
 
 ## Project Milestones
 - [x] Initial ADB connectivity and setup.
