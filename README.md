@@ -110,7 +110,7 @@ Submit pull requests or open issues on GitHub to get involved.
 - **Timeouts:** Adjust script parameters for larger chats.
 
 ## License
-[MIT License] (or your preferred open-source license)
+[MIT License](LICENSE). See [licensing scope](LICENSING.md) for third-party exclusions.
 
 ## Vision
 `WhatsLiberation` is more than a tool—it’s a challenge to rethink how we interact with closed ecosystems using open-source ingenuity. Join the journey to liberate your WhatsApp data!
